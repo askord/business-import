@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /_next/static/
+Allow: /_next/image/
+Disallow: /_next/data/
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*?*
+
+# Для одностраничного приложения разрешаем якорные ссылки
+Allow: /#*
+Allow: /*#*
+
+# Указываем путь к sitemap
+User-agent: *
+Host: https://businessimport.ru
+Sitemap: https://businessimport.ru/sitemap.xml
