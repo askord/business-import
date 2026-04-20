@@ -216,6 +216,48 @@ def delete_article(id):
     conn.close()
     return jsonify({'success': True})
 
+@app.route('/api/services', methods=['GET'])
+def get_services():
+    conn = get_db_connection()
+    services = conn.execute('SELECT * FROM services').fetchall()
+    conn.close()
+    return jsonify([dict(ix) for ix in services])
+
+@app.route('/api/services', methods=['POST'])
+@token_required
+def create_service():
+    data = request.json
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO services (title, description, steps, price) VALUES (?, ?, ?, ?)',
+        (data['title'], data['description'], data['steps'], data['price'])
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True}), 201
+
+@app.route('/api/services/<int:id>', methods=['PUT'])
+@token_required
+def update_service(id):
+    data = request.json
+    conn = get_db_connection()
+    conn.execute(
+        'UPDATE services SET title = ?, description = ?, steps = ?, price = ? WHERE id = ?',
+        (data['title'], data['description'], data['steps'], data['price'], id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/services/<int:id>', methods=['DELETE'])
+@token_required
+def delete_service(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM services WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
 @app.route('/api/send-email', methods=['POST'])
 def send_email():
     # Mocking email sending as per original requirement

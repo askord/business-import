@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 
 export const PrivacyPolicy = ({close}:{close:()=>void}) =>
 	createPortal(
-	<div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 md:p-8 z-50">
+	<div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 md:p-8 z-50">
 		<div className="bg-white rounded-lg shadow-xl md:max-w-7/12 w-full max-h-full overflow-y-auto relative">
 			<button
 				onClick={close}

@@ -5,154 +5,44 @@ import { createPortal } from 'react-dom'
 import { IMainFormFull, MailFormMini } from '../MailFormBlock/MainFormFull'
 import { XMarkIcon } from '@heroicons/react/24/solid'
 
+import axios from 'axios'
+
 interface IService{
+	id?: number
 	title: string
 	description: string
-	steps: string[]
+	steps: string | string[]
 	price: string
 	blur?: boolean
 	find?: boolean
 }
 
-const SERVICES:IService[] = [
-	{
-		title: "Импорт «под ключ».",
-		description: "Комплекс услуг по организации импорта товаров.",
-		steps: [
-			"Минимальный набор*",
-			"- Поиск товара",
-			"- Переговоры с поставщиками",
-			"- Оформление документов",
-			"- Передача груза"
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Поиск товара",
-		description: "Поможем вам найти интерисующий вас товар.",
-		steps: [
-			"- Консультация",
-			"- Поиск наиболее подходящих поставщиков",
-			"- Проверка надёжности поставщиков",
-		],
-		price: "от 1500 ₽"
-
-	},
-	{
-		title: "Переговоры с поставщиками",
-		description: "Поможем договориться с поставщиками.",
-		steps: [
-			"- Проведение переговоров на Китайском языке (устно/письменно)",
-			"- Получение подробной информации о продукции",
-			"- Согласование условий сотрудничества",
-		],
-		price: "от 2500 ₽"
-	},
-	{
-		title: "Оформление документов",
-		description: "Формирование полного пакета документов для осуществления импорта продукции",
-		steps: [
-			"- Получение и перевод первичных документов (Китайских) от поставщика",
-			"- Подготовка и оформление вторичных документов (Российских) необходимых для импорта",
-		],
-		price: "от 3500 ₽"
-	},
-	{
-		title: "Перевод Английский/Китайский",
-		description: "Если у вас возникают трудности в общении с поставщиком",
-		steps: [
-			"- Устный: перевод на встречах(онлайн/офлайн), ПНР, выставках и т.д.",
-			"- Письменный: перевод документации, инструкций, сертификатов и т.д. (в том числе локализация ПО)"
-		],
-		price: "от 500 ₽"
-	},
-	{
-		title: "Сопровождение в Китае",
-		description: "Поможем реализовать выездные командировки в Китай",
-		steps: [
-			"- Подготовка плана поездки (проживание, питание, встречи, трансфер)",
-			"- Подготовка документов для въезда в Китай (визы и прочее)",
-			"- Сопровождение переводчиком (переговоры)",
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Контроль производства и качества",
-		description: "Удостоверимся в соблюдении условий Вашего с поставщиком договора",
-		steps: [
-			"- Формирование графика производства",
-			"- Фото и видео фиксация готовой продукции",
-			"- Выезд независимого эксперта, оценка товара по чек-листу клиента",
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Консолидация товара",
-		description: "Поможем собрать несколько товаров в единую поставку",
-		steps: [
-			"- Предоставление места на складе",
-			"- Приём продукции от разных поставщиков",
-			"- Отправка единой партии",
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Брендирование",
-		description: "Выпуск готовой продукции под Вашим брендом на китайских производственных площадках",
-		steps: [
-			"- Полное сопровождение «под ключ»",
-			"- Помощь с ОЕМ-соглашением"
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Консультирование",
-		description: "Поможем разобраться в теории и практике международной торговли",
-		steps: [
-			"- Консультирование со специалистом",
-			"- Поможем составить план поставки",
-			"- Помощь в решении проблем с импортом",
-		],
-		price: "от 2000 ₽"
-	},
-	{
-		title: "Платежи",
-		description: "Осуществление оплат за товары/услуги",
-		steps: [
-			"- Перевод на банковские реквизиты контрагента",
-			"- Перевод на AliPAY и WeChatPay"
-		],
-		price: "Персональный рассчёт"
-	},
-	{
-		title: "Исследование и маркетинг",
-		description: "Поможем разобраться в рынке услуг и товаров Китая",
-		steps: [
-			"- Анализ рынка и конкурентов в Китае",
-			"- Поиск трендовых и нишевых товаров",
-		],
-		price: "от 5000 ₽"
-	},
-]
-
 export const ServicesFull = () => {
-
+	const [services, setServices] = useState<IService[]>([])
 	const [findServices, setFindServices] = useState<number>(-1)
 	const [toogleMore, setToogleMore] = useState<boolean>(false)
 
 	const scroller = useSmoothScroll()
 
-	useEffect(() => {
-		const [block, service] = window.location.hash.split('/')
-		if (block == "#services" && service){
+  useEffect(() => {
+    const fetchServices = async () => {
+      const res = await axios.get('/api/services');
+      setServices(res.data);
+    };
+    fetchServices();
+  }, []);
 
-			if(SERVICES[Number(service) - 1]){
+	useEffect(() => {
+		const [block, serviceId] = window.location.hash.split('/')
+		if (block == "#services" && serviceId){
+      const index = services.findIndex(s => s.id === Number(serviceId));
+			if(index !== -1){
 				setToogleMore(true)
-				setFindServices(Number(service) - 1)
+				setFindServices(index)
 			}
 			scroller("services")
 		}
-	}, []);
+	}, [services]);
 
 	// useEffect(()=>{
 	// 	if(Number(findServices) == -1 && !toogleMore)
@@ -166,8 +56,8 @@ export const ServicesFull = () => {
 			<h1 className="text-4xl font-bold text-center text-indigo-900 mb-12">Услуги</h1>
 			<div className={`relative ${toogleMore? "":"h-[500px] xl:h-[600px] overflow-hidden"}`}>
 				<div className='grid md:grid-cols-2 xl:grid-cols-3 gap-10 mx-2 p-1 md:mx-10 md:p-5'>
-					{SERVICES[findServices] && <ServiceCard key={findServices} {...SERVICES[findServices]} blur={false} find={true}/>}
-					{SERVICES.map((item:IService,index:number) => {
+					{services[findServices] && <ServiceCard key={findServices} {...services[findServices]} blur={false} find={true}/>}
+					{services.map((item:IService,index:number) => {
 						if(index != findServices)
 							return <ServiceCard key={index} {...item} blur={!toogleMore && index > 2} find={findServices == index}/>
 					})}
@@ -182,17 +72,18 @@ export const ServicesFull = () => {
 const ServiceCard = (service:IService) => {
 
 	const [showMailForm, setShowMailForm] = useState<boolean>(false)
+  const steps = typeof service.steps === 'string' ? JSON.parse(service.steps) : service.steps;
 
 	return <div className={`${service.find?"bg-blue-300/30":"bg-white"} border-4 border-blue-700/80 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden`}>
 		<div className="p-6 flex flex-col justify-between min-h-[400px]">
 			<h3 className="text-xl font-bold text-indigo-900 mb-2 h-[10%]">{service.title}</h3>
 			<span className={`text-gray-600 ${service.blur?"blur-xs":""} h-[10%]`}>
 				{service.description}
-				{service.steps.length > 0 && <hr></hr>}
+				{steps.length > 0 && <hr></hr>}
 			</span>
 
 			<ul className={`${service.blur?"blur-xs":""} h-[70%]`}>
-				{service.steps.map((item,index) => <li key={index} className='font-medium '>{item}</li>)}
+				{steps.map((item: string, index: number) => <li key={index} className='font-medium '>{item}</li>)}
 			</ul>
 			<p className={`font-bold text-green-700 text-center ${service.blur?"blur-xs":""} h-[10%]`}>{service.price}</p>
 			{/* <button className={`font-bold text-green-700 text-center ${service.blur?"blur-xs":""} h-[10%]`}></button> */}
@@ -210,7 +101,7 @@ interface IMailFormFull extends IMainFormFull{
 
 const MailFormFull = ({coment,close}:IMailFormFull) =>
 	createPortal(
-		<div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 md:p-8 z-50">
+		<div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 md:p-8 z-50">
 			<div className="bg-white rounded-lg shadow-xl md:max-w-7/12 w-full max-h-full overflow-y-auto relative">
 				<button
 					onClick={close}

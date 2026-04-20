@@ -1,6 +1,6 @@
 "use client"
 import { useSmoothScroll } from '@/app/hooks/useSmoothScroll'
-import { ArrowLeftIcon, ArrowRightIcon, XMarkIcon } from '@heroicons/react/24/solid'
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/solid'
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
@@ -17,11 +17,9 @@ interface IArticle{
 
 export const ArticleFull = () => {
 	const [articles, setArticles] = useState<IArticle[]>([])
-	const [fullscreenArticle, setFullscreenArticle] = useState<IArticle | undefined>();
 	const [currentIndex, setCurrentIndex] = useState<number>(0);
 
 	const visibleArticles = articles.slice(currentIndex, currentIndex + 3);
-	const scroller = useSmoothScroll()
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -43,28 +41,17 @@ export const ArticleFull = () => {
     }
   };
 
-	useEffect(() => {
-    if (fullscreenArticle) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [fullscreenArticle]);
-
-	return <>
+	return (
 		<section id="articles" className="py-20 flex items-center bg-gray-100">
 			<div className="container mx-auto px-8">
 				<h1 className="text-4xl font-bold text-center text-indigo-900 mb-12">Полезные статьи</h1>
 				<div className="relative">
 					<div className="grid md:grid-cols-3 gap-8">
 						{visibleArticles.map((article) => (
-							<div
+							<Link
 								key={`${article.id}-mini`}
-								onClick={() => setFullscreenArticle(article)}
-								className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden"
+								href={`/articles/${article.slug}`}
+								className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden block"
 							>
 								<div className="relative w-full h-48">
 									<Image
@@ -78,7 +65,7 @@ export const ArticleFull = () => {
 									<h3 className="text-xl font-bold text-indigo-900 mb-2">{article.title}</h3>
 									<p className="text-gray-600">{article.preview}</p>
 								</div>
-							</div>
+							</Link>
 						))}
 					</div>
 
@@ -104,45 +91,5 @@ export const ArticleFull = () => {
 				</div>
 			</div>
 		</section>
-		{articles.map((item:IArticle)=><>
-			<ArticleFullScreenView key={item.id} show={item.id == fullscreenArticle?.id} article={item} close={() => setFullscreenArticle(undefined)}/>
-		</>)}
-	</>
+	);
 }
-
-interface IArticleFullScreenView {
-	show: boolean
-	article:IArticle
-	close:()=>void
-}
-
-const ArticleFullScreenView = ({show,article,close}:IArticleFullScreenView) =>
-<div className={`${show?"block":"hidden"} fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 md:p-8 z-50`}>
-	<div className="bg-white rounded-lg shadow-xl md:max-w-7/12 w-full max-h-full overflow-y-auto relative">
-		<Link
-			href={`/articles/${article.slug}`}
-			className="absolute top-4 right-16 text-indigo-600 hover:text-indigo-900 z-50 p-2 bg-white rounded-xl font-bold"
-		>
-			Перейти к статье (SEO)
-		</Link>
-		<button
-			onClick={close}
-			className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 z-50 p-1 m-1 bg-white rounded-xl"
-			aria-label="Закрыть"
-		>
-			<XMarkIcon className="h-8 w-8" />
-		</button>
-		<div className="relative w-full h-64 md:h-96">
-			<Image
-				src={article.image}
-				alt={article.title}
-				fill
-				className="object-cover"
-			/>
-		</div>
-		<div className="p-6 md:p-8">
-			<h1 className="text-3xl md:text-4xl font-extrabold text-indigo-900 mb-4">{article.title}</h1>
-			<div className="prose max-w-none text-lg text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br />') }} />
-		</div>
-	</div>
-</div>
