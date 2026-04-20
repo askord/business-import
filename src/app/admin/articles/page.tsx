@@ -48,7 +48,10 @@ export default function AdminArticles() {
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Articles Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Admin Articles Dashboard</h1>
+        <button onClick={() => router.push('/admin')} className="text-blue-600 hover:underline">Back to Dashboard</button>
+      </div>
       <button
         onClick={() => { setShowForm(true); setForm({ id: null, title: '', slug: '', preview: '', content: '', image: '' }); }}
         className="bg-green-600 text-white px-4 py-2 rounded mb-4"
