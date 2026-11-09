@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'secret');
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'supersecret');
       await jwtVerify(token, secret);
       return NextResponse.next();
     } catch (e) {
@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       try {
-          const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'secret');
+          const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'supersecret');
           await jwtVerify(token, secret);
       } catch (e) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,5 +38,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/articles/:path*'],
+  matcher: ['/admin/:path*', '/api/articles/:path*', '/api/banners/:path*'],
 };
