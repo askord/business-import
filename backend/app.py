@@ -1,12 +1,14 @@
 import os
 import sqlite3
 import datetime
+import uuid
 import jwt
 import requests
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, send_from_directory
 from flask_cors import CORS
 from functools import wraps
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(dotenv_path=os.path.abspath(os.path.join(BASE_DIR, '..', '.env')))
@@ -16,6 +18,13 @@ CORS(app, supports_credentials=True)
 
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET', 'supersecret')
 DB_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'database.sqlite'))
+UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'public', 'uploads'))
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -155,6 +164,27 @@ def get_banners():
     banners = conn.execute('SELECT * FROM banners ORDER BY id ASC').fetchall()
     conn.close()
     return jsonify([dict(ix) for ix in banners])
+
+@app.route('/api/upload', methods=['POST'])
+@token_required
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in request'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(filepath)
+        url_path = f"/uploads/{unique_filename}"
+        return jsonify({'url': url_path, 'filename': unique_filename}), 201
+    return jsonify({'error': 'File type not allowed'}), 400
+
+@app.route('/uploads/<filename>', methods=['GET'])
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/banners', methods=['POST'])
 @token_required

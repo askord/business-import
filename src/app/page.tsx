@@ -11,7 +11,7 @@ import { Header } from './components/Header/Header';
 
 export default function Home() {
 
-  return <div className="font-sans text-gray-800">
+  return <div className="text-gray-800">
 		<Header />
 
 		<main className="pt-20">

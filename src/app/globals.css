@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
-html {
+html, body {
 	scroll-behavior: smooth;
+	font-family: var(--font-jost), sans-serif;
 }

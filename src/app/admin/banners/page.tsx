@@ -14,6 +14,7 @@ export default function AdminBanners() {
   const [banners, setBanners] = useState<IBanner[]>([]);
   const [form, setForm] = useState({ image_url: '', title: '' });
   const [showForm, setShowForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,8 +34,36 @@ export default function AdminBanners() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (res.data && res.data.url) {
+        setForm((prev) => ({ ...prev, image_url: res.data.url }));
+      }
+    } catch (err) {
+      alert('Ошибка при загрузке файла');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.image_url) {
+      alert('Пожалуйста, загрузите изображение или укажите ссылку');
+      return;
+    }
     try {
       await axios.post('/api/banners', form);
       setForm({ image_url: '', title: '' });
@@ -78,16 +107,38 @@ export default function AdminBanners() {
       {showForm && (
         <form onSubmit={handleSave} className="bg-white p-6 rounded-xl shadow-md mb-8 border">
           <h2 className="text-xl font-bold mb-4">Новое фоновое изображение</h2>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            URL изображения (например, /assets/main/main-1.webp или прямая ссылка)
+
+          {/* Блок загрузки файла */}
+          <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Загрузить изображение с устройства
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            />
+            {uploading && <p className="text-sm text-blue-600 mt-2">Загрузка изображения...</p>}
+          </div>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase">или укажите ссылку вручную</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-2">
+            URL изображения
           </label>
           <input
-            placeholder="URL изображения (/assets/... или https://...)"
+            placeholder="URL изображения (/uploads/..., /assets/... или https://...)"
             value={form.image_url}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
             className="w-full border p-2 mb-4 rounded"
             required
           />
+
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Название / описание (опционально)
           </label>
@@ -101,7 +152,7 @@ export default function AdminBanners() {
           {form.image_url && (
             <div className="mb-4">
               <span className="block text-sm text-gray-500 mb-1">Предпросмотр:</span>
-              <div className="relative w-48 h-28 border rounded overflow-hidden">
+              <div className="relative w-64 h-36 border rounded overflow-hidden bg-gray-100">
                 <img
                   src={form.image_url}
                   alt="Preview"
@@ -115,7 +166,11 @@ export default function AdminBanners() {
           )}
 
           <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+            <button
+              type="submit"
+              disabled={uploading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition disabled:opacity-50"
+            >
               Сохранить
             </button>
             <button
