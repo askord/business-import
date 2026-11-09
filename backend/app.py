@@ -8,13 +8,14 @@ from flask_cors import CORS
 from functools import wraps
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=os.path.join(os.getcwd(), '..', '.env'))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(dotenv_path=os.path.abspath(os.path.join(BASE_DIR, '..', '.env')))
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET', 'supersecret')
-DB_PATH = os.path.abspath(os.path.join(os.getcwd(), '..', 'database.sqlite'))
+DB_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'database.sqlite'))
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -54,116 +55,6 @@ def login():
 
     return jsonify({'message': 'Invalid credentials'}), 401
 
-@app.route('/api/search', methods=['GET'])
-def search():
-    language = request.args.get('language', 'en')
-    framePosition = request.args.get('framePosition', '0')
-    frameSize = request.args.get('frameSize', '50')
-    ItemTitle = request.args.get('ItemTitle')
-    MinPrice = request.args.get('MinPrice')
-    MaxPrice = request.args.get('MaxPrice')
-    MinVolume = request.args.get('MinVolume')
-
-    rate_cny = 13.5
-    rate_usd = 95.0
-
-    try:
-        conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO search_logs (timestamp, query, min_price, max_price, language) VALUES (?, ?, ?, ?, ?)",
-            (datetime.datetime.now().isoformat(), ItemTitle, MinPrice, MaxPrice, language)
-        )
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        app.logger.warning(f"Failed to log search query: {e}")
-
-    finalMinPrice = ""
-    finalMaxPrice = ""
-
-    def safe_float(val):
-        try:
-            if not val or val == "undefined":
-                return None
-            return float(val)
-        except (ValueError, TypeError):
-            return None
-
-    numMinPrice = safe_float(MinPrice)
-    numMaxPrice = safe_float(MaxPrice)
-
-    if rate_cny > 0:
-        if numMinPrice is not None: finalMinPrice = f"{numMinPrice / rate_cny:.2f}"
-        if numMaxPrice is not None: finalMaxPrice = f"{numMaxPrice / rate_cny:.2f}"
-
-    EXTERNAL_API_URL = "https://otapi-1688.p.rapidapi.com/BatchSearchItemsFrame"
-    RAPIDAPI_KEY = os.getenv('RAPIDAPI_KEY')
-    API_HEADERS = {
-        "x-rapidapi-key": RAPIDAPI_KEY or "",
-        "x-rapidapi-host": "otapi-1688.p.rapidapi.com"
-    }
-
-    try:
-        resp = requests.get(EXTERNAL_API_URL, headers=API_HEADERS, params={
-            'language': language,
-            'framePosition': framePosition,
-            'frameSize': frameSize,
-            'ItemTitle': ItemTitle,
-            'MinPrice': finalMinPrice,
-            'MaxPrice': finalMaxPrice,
-            'MinVolume': MinVolume,
-            'OrderBy': 'Popularity:Desc'
-        })
-        resp.raise_for_status()
-        data = resp.json()
-
-        items = data.get('Result', {}).get('Items', {}).get('Items', {}).get('Content', [])
-        formatted_items = []
-        for item in items:
-            physical = item.get('PhysicalParameters', {})
-            dimensions = {
-                'weight': physical.get('Weight', "-"),
-                'length': physical.get('Length', "-"),
-                'width': physical.get('Width', "-"),
-                'height': physical.get('Height', "-")
-            }
-
-            quantity_ranges = item.get('QuantityRanges', [])
-            quantity_prices = []
-            for qr in quantity_ranges:
-                original_price = qr.get('Price', {}).get('OriginalPrice')
-                quantity_prices.append({
-                    'min_quantity': qr.get('MinQuantity'),
-                    'original_price_cny': original_price,
-                    'price_rub': f"{original_price * rate_cny:.2f}" if original_price else "-",
-                    'price_usd': f"{original_price * rate_cny / rate_usd:.2f}" if original_price and rate_usd else "-"
-                })
-
-            price_cny = item.get('Price', {}).get('OriginalPrice', 0)
-            price_rub = f"{price_cny * rate_cny:.2f}"
-            price_usd = f"{price_cny * rate_cny / rate_usd:.2f}"
-            approx_price_rub = f"{float(price_rub) * 1.5:.0f}"
-
-            formatted_items.append({
-                'id': item.get('Id'),
-                'title': item.get('Title'),
-                'original_title': item.get('OriginalTitle'),
-                'url': item.get('ExternalItemUrl') or item.get('TaobaoItemUrl') or "-",
-                'price_cny': str(price_cny),
-                'price_rub': price_rub,
-                'price_usd': price_usd,
-                'approx_price_rub': approx_price_rub,
-                'image': item.get('MainPictureUrl') or (item.get('Pictures', [{}])[0].get('Url')) or "/assets/main/main-5.png",
-                'min_order_quantity': item.get('MinOrderQuantity', "1"),
-                'vendor': item.get('VendorDisplayName', "-"),
-                'location': item.get('Location', {}).get('City', "-"),
-                'dimensions': dimensions,
-                'quantity_prices': quantity_prices
-            })
-
-        return jsonify({'total': len(formatted_items), 'items': formatted_items})
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch data', 'message': str(e)}), 500
 
 @app.route('/api/articles', methods=['GET'])
 def get_articles():
@@ -254,6 +145,37 @@ def update_service(id):
 def delete_service(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM services WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/banners', methods=['GET'])
+def get_banners():
+    conn = get_db_connection()
+    banners = conn.execute('SELECT * FROM banners ORDER BY id ASC').fetchall()
+    conn.close()
+    return jsonify([dict(ix) for ix in banners])
+
+@app.route('/api/banners', methods=['POST'])
+@token_required
+def create_banner():
+    data = request.json
+    if not data or not data.get('image_url'):
+        return jsonify({'error': 'image_url is required'}), 400
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO banners (image_url, title) VALUES (?, ?)',
+        (data['image_url'], data.get('title', ''))
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True}), 201
+
+@app.route('/api/banners/<int:id>', methods=['DELETE'])
+@token_required
+def delete_banner(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM banners WHERE id = ?', (id,))
     conn.commit()
     conn.close()
     return jsonify({'success': True})

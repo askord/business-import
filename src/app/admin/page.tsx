@@ -30,7 +30,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <Link href="/admin/articles" className="block p-8 bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
             <h2 className="text-2xl font-bold text-indigo-700 mb-4">Manage Articles</h2>
             <p className="text-gray-600">Create, edit, and delete SEO-friendly articles for your site.</p>
@@ -39,6 +39,11 @@ export default function AdminDashboard() {
           <Link href="/admin/services" className="block p-8 bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
             <h2 className="text-2xl font-bold text-indigo-700 mb-4">Manage Services</h2>
             <p className="text-gray-600">Update service descriptions, steps, and pricing information.</p>
+          </Link>
+
+          <Link href="/admin/banners" className="block p-8 bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
+            <h2 className="text-2xl font-bold text-indigo-700 mb-4">Manage Banners</h2>
+            <p className="text-gray-600">Add and manage background images for the top hero banner.</p>
           </Link>
         </div>
       </div>
