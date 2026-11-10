@@ -1,25 +1,28 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-
-const DB_PATH = path.resolve(process.cwd(), 'database.sqlite');
-
-async function getDb() {
-  return open({
-    filename: DB_PATH,
-    driver: sqlite3.Database,
-  });
+interface Article {
+  slug: string;
+  created_at: string;
 }
 
-export default async function sitemap() {
-  const db = await getDb();
-  const articles = await db.all("SELECT slug, created_at FROM articles");
+const BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://localhost:5000';
 
+export default async function sitemap() {
   const baseUrl = 'https://businessimport.ru';
+  let articles: Article[] = [];
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/articles`, {
+      next: { revalidate: 3600 }
+    });
+    if (res.ok) {
+      articles = await res.json();
+    }
+  } catch (e) {
+    console.error('Error fetching articles for sitemap:', e);
+  }
 
   const articleUrls = articles.map((article) => ({
     url: `${baseUrl}/articles/${article.slug}`,
-    lastModified: new Date(article.created_at),
+    lastModified: article.created_at ? new Date(article.created_at) : new Date(),
   }));
 
   return [

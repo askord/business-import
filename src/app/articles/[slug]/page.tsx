@@ -1,31 +1,45 @@
 import React from 'react';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
 import Image from 'next/image';
 import { Metadata } from 'next';
 import { Header } from '@/app/components/Header/Header';
 import Link from 'next/link';
 
-const DB_PATH = path.resolve(process.cwd(), 'database.sqlite');
-
-async function getDb() {
-  return open({
-    filename: DB_PATH,
-    driver: sqlite3.Database,
-  });
+interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  preview: string;
+  content: string;
+  image: string;
+  created_at: string;
 }
 
 interface ArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
+const BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://localhost:5000';
+
+async function fetchArticle(slug: string): Promise<Article | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/articles/slug/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 60 }
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error('Error fetching article:', e);
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const db = await getDb();
-  const article = await db.get("SELECT title, preview FROM articles WHERE slug = ?", [slug]);
+  const article = await fetchArticle(slug);
 
-  if (!article) return { title: 'Article Not Found' };
+  if (!article) return { title: 'Статья не найдена' };
 
   return {
     title: article.title,
@@ -35,14 +49,19 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const db = await getDb();
-  const article = await db.get("SELECT * FROM articles WHERE slug = ?", [slug]);
+  const article = await fetchArticle(slug);
 
   if (!article) {
     return (
-      <div className="container mx-auto p-20 text-center">
-        <h1 className="text-4xl font-bold">Article not found</h1>
-        <Link href="/" className="text-blue-600 hover:underline mt-4 block">Return Home</Link>
+      <div className="font-sans text-gray-800">
+        <Header />
+        <main className="pt-24 pb-20 bg-gray-100 min-h-screen">
+          <div className="container mx-auto p-20 text-center">
+            <h1 className="text-4xl font-bold mb-4">Статья не найдена</h1>
+            <p className="text-gray-600 mb-6">Возможно, статья была удалена или ссылка неверна.</p>
+            <Link href="/" className="text-blue-600 hover:underline">Вернуться на главную</Link>
+          </div>
+        </main>
       </div>
     );
   }

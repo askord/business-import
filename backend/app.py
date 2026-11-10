@@ -81,6 +81,15 @@ def get_article(id):
         return jsonify(dict(article))
     return jsonify({'error': 'Article not found'}), 404
 
+@app.route('/api/articles/slug/<string:slug>', methods=['GET'])
+def get_article_by_slug(slug):
+    conn = get_db_connection()
+    article = conn.execute('SELECT * FROM articles WHERE slug = ?', (slug,)).fetchone()
+    conn.close()
+    if article:
+        return jsonify(dict(article))
+    return jsonify({'error': 'Article not found'}), 404
+
 @app.route('/api/articles', methods=['POST'])
 @token_required
 def create_article():
